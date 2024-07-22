@@ -14,6 +14,15 @@ def main():
     st.set_page_config(page_title="Price Monitor",
                        page_icon="📊", layout="wide")
     st.title("Price Monitor")
+    
+    # Custom CSS to change cursor on hover for sidebar menu
+    st.markdown("""
+    <style>
+    .css-1k0ckh2 {
+        cursor: pointer;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
     # Sidebar for navigation
     page = st.sidebar.selectbox(
@@ -105,35 +114,50 @@ def show_products():
             return
 
         for product in products:
-            with st.expander(product[2]):  # product name
-                st.write(f"URL: {product[1]}")
-                st.write(f"Platform: {product[3]}")
-                st.write(f"Desired Price: ${product[4]:.2f}")
+            product_id, url, name, platform, desired_price = product
+            with st.expander(name):  # product name
+                st.write(f"URL: {url}")
+                st.write(f"Platform: {platform}")
+                st.write(f"Desired Price: ${desired_price:.2f}")
+                
+                # Fetch and display the current price
+                current_price = asyncio.run(
+                    price_monitor.check_single_price(url, platform))
+                if current_price is not None:
+                    st.write(f"Current Price: ${current_price:.2f}")
+                    if current_price < desired_price:
+                        st.success(
+                            f"Price drop alert! Current price (${current_price:.2f}) is below your desired price (${desired_price:.2f})")
+                    else:
+                        st.info(
+                            f"Current price (${current_price:.2f}) is above your desired price (${desired_price:.2f})")
+                else:
+                    st.warning("Unable to retrieve current price.")
 
                 # Fetch and display price history
-                history = db_manager.get_price_history(product[0])
+                history = db_manager.get_price_history(product_id)
                 if history:
                     df = pd.DataFrame(history, columns=['Price', 'Date'])
                     fig = px.line(df, x='Date', y='Price',
-                                  title=f'Price History: {product[2]}')
+                                  title=f'Price History: {name}')
                     st.plotly_chart(fig)
                 else:
                     st.write("No price history available yet.")
 
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    if st.button(f"Check Price Now for {product[2]}"):
+                    if st.button(f"Check Price Now for {name}"):
                         with st.spinner('Checking price...'):
                             check_price_sync(
-                                product[1], product[3], product[4])
+                                url, platform, desired_price)
                 with col2:
-                    if st.button(f"Edit {product[2]}"):
-                        st.session_state.editing_product = product[0]
+                    if st.button(f"Edit {name}"):
+                        st.session_state.editing_product = product_id
                         st.experimental_rerun()
                 with col3:
-                    if st.button(f"Delete {product[2]}"):
-                        if db_manager.delete_product(product[0]):
-                            st.success(f"Deleted {product[2]}")
+                    if st.button(f"Delete {name}"):
+                        if db_manager.delete_product(product_id):
+                            st.success(f"Deleted {name}")
                             st.experimental_rerun()
                         else:
                             st.error("Failed to delete product")
