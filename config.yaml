@@ -1,0 +1,11 @@
+user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36"
+items:
+  - url: "https://www.amazon.in/Canon-1500D-Digital-Camera-S18-55/dp/B07BS4TJ43/"
+    platform: amazon
+    desired_price: 24000.0
+  - url: "https://www.ebay.com/itm/123456789012"
+    platform: ebay
+    desired_price: 150.0
+
+database:
+  file: "price_monitor.db"
